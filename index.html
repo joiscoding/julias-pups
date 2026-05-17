@@ -31,16 +31,20 @@
       <div class="actions">
         <button class="action-btn nope" id="nopeBtn" title="Nope">✕</button>
         <button class="action-btn undo" id="undoBtn" title="Undo">↺</button>
+        <button class="action-btn super" id="superBtn" title="Super Like (save as favorite)">★</button>
         <button class="action-btn like" id="likeBtn" title="Love">♥</button>
       </div>
-      <p class="hint">Swipe right / tap ♥ to save · Swipe left / tap ✕ to pass</p>
+      <p class="hint">Swipe right / ♥ to save · Swipe up / ★ to super-like (favorite) · Swipe left / ✕ to pass</p>
     </section>
 
     <!-- ALBUM VIEW -->
     <section id="albumView" class="view">
       <div class="album-header">
         <h2>My Album <span class="heart-deco">💗</span></h2>
-        <button class="clear-btn" id="clearBtn">Clear album</button>
+        <div class="album-actions">
+          <button class="filter-btn" id="favFilterBtn">⭐ Favorites only</button>
+          <button class="clear-btn" id="clearBtn">Clear album</button>
+        </div>
       </div>
       <div class="album-grid" id="albumGrid"></div>
       <div class="empty-album" id="emptyAlbum">

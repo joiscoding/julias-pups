@@ -12,9 +12,10 @@ const PUP_NAMES = [
 ];
 
 const state = {
-  pups: [],           // queue of remaining {id, url}
+  pups: [],           // queue of remaining {id, url, breed, age, name}
   history: [],        // [{pup, action}] for undo
-  album: loadAlbum(), // saved urls (array of strings, ordered newest first)
+  album: loadAlbum(), // [{url, favorite}], newest first
+  favoritesOnly: false,
 };
 
 // ---------- Boot ----------
@@ -134,9 +135,15 @@ function hash(s) {
 
 // ---------- Album persistence ----------
 function loadAlbum() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-  catch { return []; }
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    return raw.map(item =>
+      typeof item === "string" ? { url: item, favorite: false } : { url: item.url, favorite: !!item.favorite }
+    );
+  } catch { return []; }
 }
+function albumIndex(url) { return state.album.findIndex(a => a.url === url); }
+function favoritesCount() { return state.album.filter(a => a.favorite).length; }
 function saveAlbum() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.album));
 }
@@ -173,6 +180,7 @@ function renderStack() {
       <div class="breed-label">🐾 <span class="pup-name">${escapeHtml(pup.name)}</span> <span class="age">· ${escapeHtml(pup.breed)} · ${escapeHtml(pup.age)}</span></div>
       <div class="stamp like">Love</div>
       <div class="stamp nope">Nope</div>
+      <div class="stamp super">Super</div>
     `;
     stack.appendChild(card);
     if (reverseIndex === 0) attachDrag(card, pup);
@@ -198,15 +206,28 @@ function attachDrag(card, pup) {
     card.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${rot}deg)`;
     const likeStamp = card.querySelector(".stamp.like");
     const nopeStamp = card.querySelector(".stamp.nope");
-    likeStamp.style.opacity = Math.max(0, Math.min(1, currentX / 100));
-    nopeStamp.style.opacity = Math.max(0, Math.min(1, -currentX / 100));
+    const superStamp = card.querySelector(".stamp.super");
+    // When swiping primarily up, show super stamp instead of like/nope
+    const verticalDominant = currentY < -40 && Math.abs(currentY) > Math.abs(currentX);
+    if (verticalDominant) {
+      superStamp.style.opacity = Math.max(0, Math.min(1, -currentY / 120));
+      likeStamp.style.opacity = 0;
+      nopeStamp.style.opacity = 0;
+    } else {
+      superStamp.style.opacity = 0;
+      likeStamp.style.opacity = Math.max(0, Math.min(1, currentX / 100));
+      nopeStamp.style.opacity = Math.max(0, Math.min(1, -currentX / 100));
+    }
   };
   const onUp = () => {
     if (!dragging) return;
     dragging = false;
     card.style.transition = "transform 0.3s ease, opacity 0.3s ease";
     const threshold = 110;
-    if (currentX > threshold) {
+    const upThreshold = 120;
+    if (currentY < -upThreshold && Math.abs(currentY) > Math.abs(currentX)) {
+      swipe("up", pup, card);
+    } else if (currentX > threshold) {
       swipe("right", pup, card);
     } else if (currentX < -threshold) {
       swipe("left", pup, card);
@@ -214,6 +235,7 @@ function attachDrag(card, pup) {
       card.style.transform = "";
       card.querySelector(".stamp.like").style.opacity = 0;
       card.querySelector(".stamp.nope").style.opacity = 0;
+      card.querySelector(".stamp.super").style.opacity = 0;
     }
   };
 
@@ -239,16 +261,24 @@ function swipe(direction, pup, cardEl) {
   const el = topCard || cardEl;
   if (!el) return;
 
-  el.classList.add(direction === "right" ? "gone-right" : "gone-left");
+  el.classList.add(
+    direction === "right" ? "gone-right" :
+    direction === "up" ? "gone-up" :
+    "gone-left"
+  );
 
-  if (direction === "right") {
-    if (!state.album.includes(actualPup.url)) {
-      state.album.unshift(actualPup.url);
-      saveAlbum();
-      updateBadge();
-      renderAlbum();
-      heartBurst();
+  if (direction === "right" || direction === "up") {
+    const idx = albumIndex(actualPup.url);
+    const favorite = direction === "up";
+    if (idx === -1) {
+      state.album.unshift({ url: actualPup.url, favorite });
+    } else if (favorite) {
+      state.album[idx].favorite = true;
     }
+    saveAlbum();
+    updateBadge();
+    renderAlbum();
+    favorite ? superHeartBurst() : heartBurst();
   }
   state.history.push({ pup: actualPup, action: direction });
   state.pups.shift();
@@ -263,8 +293,8 @@ function undo() {
   const last = state.history.pop();
   if (!last) return;
   state.pups.unshift(last.pup);
-  if (last.action === "right") {
-    state.album = state.album.filter(u => u !== last.pup.url);
+  if (last.action === "right" || last.action === "up") {
+    state.album = state.album.filter(a => a.url !== last.pup.url);
     saveAlbum();
     updateBadge();
     renderAlbum();
@@ -275,10 +305,11 @@ function undo() {
 
 function updateCounter() {
   const seen = TOTAL_PUPS - state.pups.length;
+  const favs = favoritesCount();
   document.getElementById("counter").textContent =
     state.pups.length === 0
       ? `All ${TOTAL_PUPS} pups seen! 🎉`
-      : `${seen + 1} / ${TOTAL_PUPS} · ${state.album.length} saved 💖`;
+      : `${seen + 1} / ${TOTAL_PUPS} · ${state.album.length} saved 💖 · ${favs} ⭐`;
 }
 
 // ---------- Buttons + tabs ----------
@@ -289,6 +320,9 @@ function wireButtons() {
   document.getElementById("nopeBtn").addEventListener("click", () => {
     const top = state.pups[0]; if (top) swipe("left", top);
   });
+  document.getElementById("superBtn").addEventListener("click", () => {
+    const top = state.pups[0]; if (top) swipe("up", top);
+  });
   document.getElementById("undoBtn").addEventListener("click", undo);
   document.getElementById("clearBtn").addEventListener("click", () => {
     if (state.album.length === 0) return;
@@ -297,7 +331,12 @@ function wireButtons() {
       saveAlbum();
       renderAlbum();
       updateBadge();
+      updateCounter();
     }
+  });
+  document.getElementById("favFilterBtn").addEventListener("click", () => {
+    state.favoritesOnly = !state.favoritesOnly;
+    renderAlbum();
   });
 }
 
@@ -318,32 +357,54 @@ window.switchView = switchView;
 function renderAlbum() {
   const grid = document.getElementById("albumGrid");
   const empty = document.getElementById("emptyAlbum");
+  const favBtn = document.getElementById("favFilterBtn");
+  if (favBtn) {
+    favBtn.classList.toggle("active", state.favoritesOnly);
+    favBtn.textContent = state.favoritesOnly ? `⭐ Favorites (${favoritesCount()})` : `⭐ Favorites only`;
+  }
   grid.innerHTML = "";
-  if (state.album.length === 0) {
+  const items = state.favoritesOnly ? state.album.filter(a => a.favorite) : state.album;
+
+  if (items.length === 0) {
     empty.style.display = "block";
     grid.style.display = "none";
+    empty.querySelector("p").innerHTML = state.favoritesOnly
+      ? `No favorites yet!<br/>Swipe up on a pup to super-like ⭐`
+      : `No pups saved yet!<br/>Go swipe right on your favorites.`;
     return;
   }
   empty.style.display = "none";
   grid.style.display = "grid";
-  state.album.forEach(url => {
+  items.forEach(({ url, favorite }) => {
     const breed = breedFromUrl(url);
     const age = ageFromUrl(url);
     const name = nameFromUrl(url);
     const item = document.createElement("div");
-    item.className = "album-item";
-    item.title = `${name} · ${breed} · ${age}`;
+    item.className = "album-item" + (favorite ? " is-favorite" : "");
+    item.title = `${name} · ${breed} · ${age}${favorite ? " · Favorite ⭐" : ""}`;
     item.innerHTML = `
       <img src="${url}" alt="${escapeHtml(name)} the ${escapeHtml(breed)}" loading="lazy" />
       <div class="breed-label small">🐾 <span class="pup-name">${escapeHtml(name)}</span> <span class="age">· ${escapeHtml(breed)} · ${escapeHtml(age)}</span></div>
-      <span class="corner-heart">💖</span>
+      <span class="corner-heart">${favorite ? "⭐" : "💖"}</span>
+      <button class="fav" title="${favorite ? "Unfavorite" : "Mark favorite"}">${favorite ? "★" : "☆"}</button>
       <button class="remove" title="Remove">✕</button>
     `;
+    item.querySelector(".fav").addEventListener("click", (e) => {
+      e.stopPropagation();
+      const idx = albumIndex(url);
+      if (idx !== -1) {
+        state.album[idx].favorite = !state.album[idx].favorite;
+        saveAlbum();
+        renderAlbum();
+        updateCounter();
+      }
+    });
     item.querySelector(".remove").addEventListener("click", () => {
-      state.album = state.album.filter(u => u !== url);
+      state.album = state.album.filter(a => a.url !== url);
       saveAlbum();
       renderAlbum();
       updateBadge();
+      updateCounter();
     });
     grid.appendChild(item);
   });
@@ -370,6 +431,27 @@ function floatHearts() {
     h.style.animationDuration = (10 + Math.random() * 14) + "s";
     h.style.animationDelay = (-Math.random() * 20) + "s";
     bg.appendChild(h);
+  }
+}
+
+function superHeartBurst() {
+  const emojis = ["⭐", "✨", "💛", "🌟", "💫"];
+  for (let i = 0; i < 14; i++) {
+    const h = document.createElement("span");
+    h.textContent = emojis[i % emojis.length];
+    h.style.position = "fixed";
+    h.style.left = (50 + (Math.random() - 0.5) * 40) + "vw";
+    h.style.top = "55vh";
+    h.style.fontSize = (22 + Math.random() * 24) + "px";
+    h.style.pointerEvents = "none";
+    h.style.zIndex = "9999";
+    h.style.transition = "all 1.1s ease-out";
+    document.body.appendChild(h);
+    requestAnimationFrame(() => {
+      h.style.transform = `translate(${(Math.random() - 0.5) * 400}px, ${-280 - Math.random() * 180}px) scale(1.6) rotate(${(Math.random()-0.5)*360}deg)`;
+      h.style.opacity = "0";
+    });
+    setTimeout(() => h.remove(), 1200);
   }
 }
 

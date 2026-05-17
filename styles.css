@@ -243,9 +243,19 @@ main {
   color: #888;
   transform: rotate(-15deg);
 }
+.card .stamp.super {
+  top: auto;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-6deg);
+  color: #f5a300;
+  border-color: #f5a300;
+  text-shadow: 0 0 8px rgba(245, 163, 0, 0.4);
+}
 
 .card.gone-right { transform: translateX(150%) rotate(30deg) !important; opacity: 0; }
 .card.gone-left  { transform: translateX(-150%) rotate(-30deg) !important; opacity: 0; }
+.card.gone-up    { transform: translateY(-130%) rotate(0deg) scale(0.9) !important; opacity: 0; }
 
 .loading {
   position: absolute; inset: 0;
@@ -315,6 +325,11 @@ main {
   color: #fff;
   background: linear-gradient(135deg, var(--pink-400), var(--pink-500));
 }
+.action-btn.super {
+  color: #fff;
+  background: linear-gradient(135deg, #ffd24d, #f5a300);
+  box-shadow: 0 8px 22px rgba(245, 163, 0, 0.45);
+}
 .action-btn.undo { color: var(--pink-400); font-size: 24px; width: 52px; height: 52px; align-self: center; }
 
 .hint {
@@ -352,6 +367,31 @@ main {
   transition: all 0.2s;
 }
 .clear-btn:hover { background: var(--pink-100); }
+
+.album-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.filter-btn {
+  background: #fff;
+  border: 2px solid #f5d27a;
+  color: #b97a00;
+  font-family: inherit;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-btn:hover { background: #fff7e0; }
+.filter-btn.active {
+  background: linear-gradient(135deg, #ffd24d, #f5a300);
+  border-color: #f5a300;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(245, 163, 0, 0.4);
+}
 
 .album-grid {
   display: grid;
@@ -394,6 +434,31 @@ main {
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 .album-item:hover .remove { opacity: 1; }
+
+.album-item.is-favorite {
+  border-color: #ffd24d;
+  box-shadow: 0 6px 18px rgba(245, 163, 0, 0.35);
+}
+.album-item .fav {
+  position: absolute;
+  top: 6px; left: 6px;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.92);
+  color: #f5a300;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.album-item .fav:hover { transform: scale(1.1); }
+.album-item.is-favorite .fav {
+  background: linear-gradient(135deg, #ffd24d, #f5a300);
+  color: #fff;
+}
 
 .empty-album {
   text-align: center;
