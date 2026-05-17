@@ -403,13 +403,15 @@ function renderAlbum() {
       e.stopPropagation();
       downloadPup(url, name, breed);
     });
-    item.querySelector(".remove").addEventListener("click", () => {
+    item.querySelector(".remove").addEventListener("click", (e) => {
+      e.stopPropagation();
       state.album = state.album.filter(a => a.url !== url);
       saveAlbum();
       renderAlbum();
       updateBadge();
       updateCounter();
     });
+    item.addEventListener("click", () => openLightbox({ url, name, breed, age }));
     grid.appendChild(item);
   });
 }
@@ -447,6 +449,43 @@ async function downloadPup(url, name, breed) {
     window.open(url, "_blank", "noopener");
   }
 }
+
+let currentLightboxPup = null;
+function openLightbox({ url, name, breed, age }) {
+  currentLightboxPup = { url, name, breed, age };
+  const lb = document.getElementById("lightbox");
+  document.getElementById("lightboxImg").src = url;
+  document.getElementById("lightboxImg").alt = `${name} the ${breed}`;
+  document.getElementById("lightboxName").textContent = name;
+  document.getElementById("lightboxBreed").textContent = breed;
+  document.getElementById("lightboxAge").textContent = age;
+  lb.classList.add("open");
+  lb.setAttribute("aria-hidden", "false");
+}
+
+function closeLightbox() {
+  const lb = document.getElementById("lightbox");
+  lb.classList.remove("open");
+  lb.setAttribute("aria-hidden", "true");
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const lb = document.getElementById("lightbox");
+  if (!lb) return;
+  document.getElementById("lightboxClose").addEventListener("click", closeLightbox);
+  document.getElementById("lightboxDownload").addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (currentLightboxPup) {
+      downloadPup(currentLightboxPup.url, currentLightboxPup.name, currentLightboxPup.breed);
+    }
+  });
+  lb.addEventListener("click", (e) => {
+    if (e.target === lb) closeLightbox();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && lb.classList.contains("open")) closeLightbox();
+  });
+});
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
