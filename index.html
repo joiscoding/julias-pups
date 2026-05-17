@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Julia's Pups 🐾💕</title>
+<link rel="stylesheet" href="styles.css" />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Pacifico&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="hearts-bg" id="heartsBg"></div>
+
+  <header class="site-header">
+    <h1 class="logo">Julia's Pups <span class="logo-heart">💖</span></h1>
+    <nav class="tabs">
+      <button class="tab active" data-view="swipe">Swipe 🐶</button>
+      <button class="tab" data-view="album">My Album <span class="badge" id="albumBadge">0</span></button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- SWIPE VIEW -->
+    <section id="swipeView" class="view active">
+      <div class="counter" id="counter">Loading puppies…</div>
+      <div class="card-stack" id="cardStack">
+        <div class="loading">
+          <div class="paw-spinner">🐾</div>
+          <p>Fetching adorable pups…</p>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="action-btn nope" id="nopeBtn" title="Nope">✕</button>
+        <button class="action-btn undo" id="undoBtn" title="Undo">↺</button>
+        <button class="action-btn like" id="likeBtn" title="Love">♥</button>
+      </div>
+      <p class="hint">Swipe right / tap ♥ to save · Swipe left / tap ✕ to pass</p>
+    </section>
+
+    <!-- ALBUM VIEW -->
+    <section id="albumView" class="view">
+      <div class="album-header">
+        <h2>My Album <span class="heart-deco">💗</span></h2>
+        <button class="clear-btn" id="clearBtn">Clear album</button>
+      </div>
+      <div class="album-grid" id="albumGrid"></div>
+      <div class="empty-album" id="emptyAlbum">
+        <div class="big-heart">🐾💕</div>
+        <p>No pups saved yet!<br/>Go swipe right on your favorites.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
