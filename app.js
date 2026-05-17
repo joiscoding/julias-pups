@@ -386,7 +386,7 @@ function renderAlbum() {
       <img src="${url}" alt="${escapeHtml(name)} the ${escapeHtml(breed)}" loading="lazy" />
       <div class="breed-label small">🐾 <span class="pup-name">${escapeHtml(name)}</span> <span class="age">· ${escapeHtml(breed)} · ${escapeHtml(age)}</span></div>
       <span class="corner-heart">${favorite ? "⭐" : "💖"}</span>
-      <button class="fav" title="${favorite ? "Unfavorite" : "Mark favorite"}">${favorite ? "★" : "☆"}</button>
+      <button class="fav" title="${favorite ? "Unfavorite" : "Mark favorite"}" aria-label="${favorite ? "Unfavorite" : "Mark favorite"}">${favorite ? "⭐" : "☆"}</button>
       <button class="remove" title="Remove">✕</button>
     `;
     item.querySelector(".fav").addEventListener("click", (e) => {

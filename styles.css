@@ -345,6 +345,8 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 16px;
   padding: 0 8px;
 }
@@ -456,8 +458,9 @@ main {
 }
 .album-item .fav:hover { transform: scale(1.1); }
 .album-item.is-favorite .fav {
-  background: linear-gradient(135deg, #ffd24d, #f5a300);
-  color: #fff;
+  background: #fff;
+  color: #f5a300;
+  font-size: 16px;
 }
 
 .empty-album {
@@ -475,7 +478,33 @@ main {
   font-weight: 500;
 }
 
+@media (max-width: 600px) {
+  .album-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .album-header h2 {
+    text-align: center;
+    font-size: 28px;
+  }
+  .album-actions {
+    justify-content: center;
+    width: 100%;
+  }
+  .album-actions .filter-btn,
+  .album-actions .clear-btn {
+    flex: 1;
+    text-align: center;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+}
+
 @media (max-width: 480px) {
   .logo { font-size: 36px; }
   .album-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  .actions { gap: 14px; }
+  .action-btn { width: 56px; height: 56px; font-size: 24px; }
+  .action-btn.undo { width: 46px; height: 46px; font-size: 20px; }
 }
