@@ -387,6 +387,7 @@ function renderAlbum() {
       <div class="breed-label small">🐾 <span class="pup-name">${escapeHtml(name)}</span> <span class="age">· ${escapeHtml(breed)} · ${escapeHtml(age)}</span></div>
       <span class="corner-heart">${favorite ? "⭐" : "💖"}</span>
       <button class="fav" title="${favorite ? "Unfavorite" : "Mark favorite"}" aria-label="${favorite ? "Unfavorite" : "Mark favorite"}">${favorite ? "⭐" : "☆"}</button>
+      <button class="download" title="Download / Save to Photos" aria-label="Download">⬇</button>
       <button class="remove" title="Remove">✕</button>
     `;
     item.querySelector(".fav").addEventListener("click", (e) => {
@@ -399,6 +400,10 @@ function renderAlbum() {
         updateCounter();
       }
     });
+    item.querySelector(".download").addEventListener("click", (e) => {
+      e.stopPropagation();
+      downloadPup(url, name, breed);
+    });
     item.querySelector(".remove").addEventListener("click", () => {
       state.album = state.album.filter(a => a.url !== url);
       saveAlbum();
@@ -408,6 +413,40 @@ function renderAlbum() {
     });
     grid.appendChild(item);
   });
+}
+
+async function downloadPup(url, name, breed) {
+  const ext = (url.match(/\.(jpe?g|png|webp|gif)(?:\?|$)/i)?.[1] || "jpg").toLowerCase();
+  const safe = s => String(s).replace(/[^a-z0-9_-]+/gi, "-").replace(/^-+|-+$/g, "");
+  const filename = `${safe(name) || "pup"}-${safe(breed) || "dog"}.${ext}`;
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const file = new File([blob], filename, { type: blob.type || `image/${ext}` });
+    // Prefer native share on mobile (iOS Safari → "Save Image" goes to Photos)
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: `${name} the ${breed}` });
+        return;
+      } catch (err) {
+        if (err && err.name === "AbortError") return; // user cancelled
+        // fall through to blob download
+      }
+    }
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  } catch (err) {
+    console.warn("Download failed, opening image in new tab as fallback", err);
+    // Last resort — open the image so the user can long-press / right-click → Save
+    window.open(url, "_blank", "noopener");
+  }
 }
 
 function escapeHtml(s) {
