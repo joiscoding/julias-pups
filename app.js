@@ -3,6 +3,14 @@
 const TOTAL_PUPS = 100;
 const STORAGE_KEY = "juliasPups.album";
 
+const PUP_NAMES = [
+  "Bella", "Luna", "Daisy", "Lucy", "Lily", "Molly", "Sadie", "Stella", "Maggie", "Rosie",
+  "Coco", "Nala", "Pepper", "Hazel", "Willow", "Ruby", "Penny", "Olive", "Zoe", "Mia",
+  "Charlie", "Max", "Buddy", "Cooper", "Milo", "Rocky", "Bear", "Teddy", "Finn", "Oliver",
+  "Toby", "Leo", "Murphy", "Duke", "Jack", "Louie", "Ollie", "Rusty", "Biscuit", "Waffles",
+  "Mochi", "Peanut", "Pumpkin", "Marshmallow", "Cookie", "Noodle", "Pickle", "Banjo", "Scout", "Winston",
+];
+
 const state = {
   pups: [],           // queue of remaining {id, url}
   history: [],        // [{pup, action}] for undo
@@ -32,14 +40,29 @@ async function loadPuppies() {
       `https://dog.ceo/api/breeds/image/random/${TOTAL_PUPS}`, // filler for variety
     ];
     const results = await Promise.all(
-      queries.map(u => fetch(u).then(r => r.json()).catch(() => ({ message: [] })))
+      queries.map(u =>
+        fetch(u)
+          .then(r => r.json())
+          .catch(err => { console.warn("Pup fetch failed:", u, err); return { message: [] }; })
+      )
     );
     let urls = results.flatMap(r => Array.isArray(r.message) ? r.message : []);
+    console.log(`Fetched ${urls.length} pup urls from ${results.length} queries`);
     urls = shuffle(unique(urls)).slice(0, TOTAL_PUPS);
 
-    if (urls.length === 0) throw new Error("No images returned");
+    if (urls.length === 0) {
+      // Fallback: try the simplest endpoint one more time
+      const fallback = await fetch(`https://dog.ceo/api/breeds/image/random/${TOTAL_PUPS}`)
+        .then(r => r.json())
+        .catch(() => ({ message: [] }));
+      if (Array.isArray(fallback.message) && fallback.message.length > 0) {
+        urls = shuffle(unique(fallback.message)).slice(0, TOTAL_PUPS);
+      } else {
+        throw new Error("No images returned");
+      }
+    }
 
-    state.pups = urls.map((url, i) => ({ id: `pup-${i}-${hash(url)}`, url, breed: breedFromUrl(url) }));
+    state.pups = urls.map((url, i) => ({ id: `pup-${i}-${hash(url)}`, url, breed: breedFromUrl(url), age: ageFromUrl(url), name: nameFromUrl(url) }));
     renderStack();
     updateCounter();
   } catch (err) {
@@ -61,6 +84,37 @@ function breedFromUrl(url) {
   // "retriever-golden" -> "Golden Retriever", "bulldog-french" -> "French Bulldog"
   const ordered = parts.length > 1 ? [parts[1], parts[0]] : parts;
   return ordered.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
+}
+
+// 32-bit unsigned integer hash of a string. Stable, well-distributed, safe for `%`.
+function intHash(s) {
+  let h = 2166136261 >>> 0; // FNV-1a basis
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h;
+}
+
+function nameFromUrl(url) {
+  const h = intHash("name:" + url);
+  return PUP_NAMES[h % PUP_NAMES.length];
+}
+
+// Deterministic cute age based on the image url, so a given pup always has the same age.
+function ageFromUrl(url) {
+  const h = intHash("age:" + url);
+  // 70% are puppies (weeks/months), 30% are older dogs (years)
+  if (h % 10 < 7) {
+    const months = (h % 11) + 2; // 2–12 months
+    if (months < 4) {
+      const weeks = (h % 6) + 6; // 6–11 weeks
+      return `${weeks} weeks old`;
+    }
+    return `${months} months old`;
+  }
+  const years = (h % 12) + 1; // 1–12 years
+  return years === 1 ? `1 year old` : `${years} years old`;
 }
 
 function unique(arr) { return [...new Set(arr)]; }
@@ -116,7 +170,7 @@ function renderStack() {
     card.style.zIndex = String(10 - reverseIndex);
     card.innerHTML = `
       <img src="${pup.url}" alt="${escapeHtml(pup.breed)}" loading="eager" />
-      <div class="breed-label">🐾 ${escapeHtml(pup.breed)}</div>
+      <div class="breed-label">🐾 <span class="pup-name">${escapeHtml(pup.name)}</span> <span class="age">· ${escapeHtml(pup.breed)} · ${escapeHtml(pup.age)}</span></div>
       <div class="stamp like">Love</div>
       <div class="stamp nope">Nope</div>
     `;
@@ -274,12 +328,14 @@ function renderAlbum() {
   grid.style.display = "grid";
   state.album.forEach(url => {
     const breed = breedFromUrl(url);
+    const age = ageFromUrl(url);
+    const name = nameFromUrl(url);
     const item = document.createElement("div");
     item.className = "album-item";
-    item.title = breed;
+    item.title = `${name} · ${breed} · ${age}`;
     item.innerHTML = `
-      <img src="${url}" alt="${escapeHtml(breed)}" loading="lazy" />
-      <div class="breed-label small">🐾 ${escapeHtml(breed)}</div>
+      <img src="${url}" alt="${escapeHtml(name)} the ${escapeHtml(breed)}" loading="lazy" />
+      <div class="breed-label small">🐾 <span class="pup-name">${escapeHtml(name)}</span> <span class="age">· ${escapeHtml(breed)} · ${escapeHtml(age)}</span></div>
       <span class="corner-heart">💖</span>
       <button class="remove" title="Remove">✕</button>
     `;

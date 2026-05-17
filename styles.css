@@ -180,6 +180,19 @@ main {
   transform: translateY(0);
 }
 
+.breed-label .pup-name {
+  font-family: "Pacifico", cursive;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.breed-label .age {
+  font-weight: 500;
+  opacity: 0.9;
+  margin-left: 4px;
+  font-size: 0.9em;
+}
+
 .album-item .breed-label.small {
   position: absolute;
   left: 6px;
